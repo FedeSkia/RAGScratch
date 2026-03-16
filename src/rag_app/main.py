@@ -24,7 +24,6 @@ def read_root(data: InputData) -> types.Message:
 def main():
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    database_manager.init_database()
 
 if __name__ == "__main__":
     main()

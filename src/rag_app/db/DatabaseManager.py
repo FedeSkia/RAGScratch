@@ -26,57 +26,6 @@ class DatabaseManager:
             print(f"✗ Connection error DB: {e}")
             raise
 
-    def init_database(self):
-        """Create required tables"""
-        try:
-            cur = self.conn.cursor()
-
-            # Enable pgvector
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
-
-            # Conversations table
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS conversations (
-                    id SERIAL PRIMARY KEY,
-                    user_id VARCHAR(255) NOT NULL,
-                    title VARCHAR(500),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            # Messages table with embedding
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS messages (
-                    id SERIAL PRIMARY KEY,
-                    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-                    role VARCHAR(20) NOT NULL,
-                    content TEXT NOT NULL,
-                    embedding vector(1536),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            # Index for semantic search
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS messages_embedding_idx 
-                ON messages USING ivfflat (embedding vector_cosine_ops) 
-                WITH (lists = 100)
-            """)
-
-            # Index for temporal searches
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS messages_conversation_time_idx 
-                ON messages(conversation_id, created_at)
-            """)
-
-            self.conn.commit()
-            cur.close()
-            print("Database initialized")
-        except psycopg2.Error as e:
-            print(f"✗ Initialization error: {e}")
-            self.conn.rollback()
-
     def create_conversation(self, user_id: str, title: str = None) -> int:
         """Create a new conversation"""
         cur = self.conn.cursor()

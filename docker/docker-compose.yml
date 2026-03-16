@@ -32,11 +32,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
 
 networks:
   my_app_network:
     driver: bridge
 
 volumes:
-  app-data:
+  postgres_data:
     driver: local
