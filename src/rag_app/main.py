@@ -1,30 +1,19 @@
-from anthropic import Anthropic, types
+from anthropic import types
 from fastapi import FastAPI
-from pydantic import BaseModel
 
+from rag_app.chat_service.ChatService import ChatService
 from rag_app.db.DatabaseManager import DatabaseManager
+from rag_app.models import InputData
 
 app = FastAPI()
 db = DatabaseManager()
-
-client = Anthropic()
-
-class InputData(BaseModel):
-    role: str
-    content: str
-    user_id: str
-    conversation_id: str
+chatService = ChatService()
 
 @app.post("/query")
 def read_root(data: InputData) -> types.Message:
-    message = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=1024,
-        messages=[
-            {"role": data.role, "content": data.content}
-        ]
-    )
-    return message
+    if data.conversation_id is None:
+        return chatService.add_new_conversation(data)
+    return []
 
 @app.get("/conversations/{user_id}")
 def get_conversations(user_id: str):
