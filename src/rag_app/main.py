@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from anthropic import Anthropic, types
-from dotenv import load_dotenv
-import os
+from rag_app.db.DatabaseManager import database_manager
 
 app = FastAPI()
 client = Anthropic()
@@ -25,6 +24,7 @@ def read_root(data: InputData) -> types.Message:
 def main():
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    database_manager.init_database()
 
 if __name__ == "__main__":
     main()

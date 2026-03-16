@@ -1,8 +1,8 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from pgvector.psycopg2 import register_vector
-from ..config import settings
-from typing import List, Dict, Optional
+from typing import List, Dict
+from rag_app.config import settings
 
 
 class DatabaseManager:
@@ -11,7 +11,7 @@ class DatabaseManager:
         self.connect()
 
     def connect(self):
-        """Connettiti al database PostgreSQL"""
+        """Connect to PostgreSQL"""
         try:
             self.conn = psycopg2.connect(
                 host=settings.db_host,
@@ -20,22 +20,21 @@ class DatabaseManager:
                 user=settings.db_user,
                 password=settings.db_password
             )
-            # Registra il tipo vector per pgvector
             register_vector(self.conn)
-            print(f"✓ Connesso a {settings.db_name}")
+            print(f"✓ Connected to {settings.db_name}")
         except psycopg2.Error as e:
-            print(f"✗ Errore connessione DB: {e}")
+            print(f"✗ Connection error DB: {e}")
             raise
 
     def init_database(self):
-        """Crea le tabelle necessarie"""
+        """Create required tables"""
         try:
             cur = self.conn.cursor()
 
-            # Abilita pgvector
+            # Enable pgvector
             cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
-            # Tabella conversazioni
+            # Conversations table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
                     id SERIAL PRIMARY KEY,
@@ -46,7 +45,7 @@ class DatabaseManager:
                 )
             """)
 
-            # Tabella messaggi con embedding
+            # Messages table with embedding
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
                     id SERIAL PRIMARY KEY,
@@ -58,14 +57,14 @@ class DatabaseManager:
                 )
             """)
 
-            # Indice per ricerca semantica
+            # Index for semantic search
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS messages_embedding_idx 
                 ON messages USING ivfflat (embedding vector_cosine_ops) 
                 WITH (lists = 100)
             """)
 
-            # Indice per ricerche temporali
+            # Index for temporal searches
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS messages_conversation_time_idx 
                 ON messages(conversation_id, created_at)
@@ -73,13 +72,13 @@ class DatabaseManager:
 
             self.conn.commit()
             cur.close()
-            print("✓ Database inizializzato")
+            print("Database initialized")
         except psycopg2.Error as e:
-            print(f"✗ Errore inizializzazione: {e}")
+            print(f"✗ Initialization error: {e}")
             self.conn.rollback()
 
     def create_conversation(self, user_id: str, title: str = None) -> int:
-        """Crea una nuova conversazione"""
+        """Create a new conversation"""
         cur = self.conn.cursor()
         try:
             cur.execute("""
@@ -92,13 +91,13 @@ class DatabaseManager:
             return conversation_id
         except psycopg2.Error as e:
             self.conn.rollback()
-            print(f"✗ Errore creazione conversazione: {e}")
+            print(f"✗ Error creating conversation: {e}")
             raise
         finally:
             cur.close()
 
     def save_message(self, conversation_id: int, role: str, content: str, embedding: List[float] = None) -> int:
-        """Salva un messaggio con embedding opzionale"""
+        """Save a message with optional embedding"""
         cur = self.conn.cursor()
         try:
             cur.execute("""
@@ -111,13 +110,13 @@ class DatabaseManager:
             return message_id
         except psycopg2.Error as e:
             self.conn.rollback()
-            print(f"✗ Errore salvataggio messaggio: {e}")
+            print(f"✗ Error saving message: {e}")
             raise
         finally:
             cur.close()
 
     def get_conversation_history(self, conversation_id: int, limit: int = 50) -> List[Dict]:
-        """Recupera la storia di una conversazione"""
+        """Retrieve conversation history"""
         cur = self.conn.cursor(cursor_factory=RealDictCursor)
         try:
             cur.execute("""
@@ -128,15 +127,15 @@ class DatabaseManager:
                 LIMIT %s
             """, (conversation_id, limit))
             messages = cur.fetchall()
-            return list(reversed(messages))  # Ordina dal più vecchio al più recente
+            return list(reversed(messages))  # Sort from oldest to newest
         except psycopg2.Error as e:
-            print(f"✗ Errore recupero storia: {e}")
+            print(f"✗ Error retrieving history: {e}")
             return []
         finally:
             cur.close()
 
     def search_similar_messages(self, conversation_id: int, embedding: List[float], limit: int = 5) -> List[Dict]:
-        """Ricerca semantica di messaggi simili usando pgvector"""
+        """Semantic search for similar messages using pgvector"""
         cur = self.conn.cursor(cursor_factory=RealDictCursor)
         try:
             cur.execute("""
@@ -149,13 +148,13 @@ class DatabaseManager:
             results = cur.fetchall()
             return results
         except psycopg2.Error as e:
-            print(f"✗ Errore ricerca semantica: {e}")
+            print(f"✗ Error in semantic search: {e}")
             return []
         finally:
             cur.close()
 
     def get_all_conversations(self, user_id: str) -> List[Dict]:
-        """Recupera tutte le conversazioni di un utente"""
+        """Retrieve all conversations for a user"""
         cur = self.conn.cursor(cursor_factory=RealDictCursor)
         try:
             cur.execute("""
@@ -166,13 +165,15 @@ class DatabaseManager:
             """, (user_id,))
             return cur.fetchall()
         except psycopg2.Error as e:
-            print(f"✗ Errore recupero conversazioni: {e}")
+            print(f"✗ Error retrieving conversations: {e}")
             return []
         finally:
             cur.close()
 
     def close(self):
-        """Chiudi la connessione"""
+        """Close the connection"""
         if self.conn:
             self.conn.close()
-            print("✓ Connessione chiusa")
+            print("✓ Connection closed")
+
+database_manager = DatabaseManager()

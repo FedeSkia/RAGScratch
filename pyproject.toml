@@ -17,6 +17,7 @@ python-json-logger = "*"
 fastapi = "~=0.116.1"
 uvicorn = "~=0.35.0"
 pydantic = "~=2.11.7"
+pydantic-settings = "~=2.9.1"
 python-dotenv = "~=1.1.1"
 beautifulsoup4 = "~=4.13.4"
 

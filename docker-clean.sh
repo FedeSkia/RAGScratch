@@ -6,11 +6,11 @@ PROJECT_ROOT="$SCRIPT_DIR"
 
 cd "$PROJECT_ROOT"
 
-# Ferma e rimuove tutto (containers, volumes, networks)
+# Stops and removes everything (containers, volumes, networks)
 echo "Removing orphans..."
 docker compose -f docker/docker-compose.yml down -v --remove-orphans
 
-echo "Deleting immagine rag-app:latest..."
-docker rmi rag-app:latest || echo "⚠️  Immagine non trovata, skipping..."
+echo "Deleting image rag-app:latest..."
+docker rmi rag-app:latest || echo "⚠️  Image not found, skipping..."
 
 echo "Cleaned"
