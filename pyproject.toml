@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "rag_app"
+version = "0.1.0"
+description = "RAG app"
+readme = "README.md"
+packages = [{ include = "rag_app", from = "src" }]
+authors = ["Federico C. <federico.conoci@gmail.com>"]
+
+[tool.poetry.dependencies]
+psycopg2-binary = "^2.9.9"
+python = "^3.11"
+
+# --- Logging ---
+python-json-logger = "*"
+
+# --- Web / API ---
+fastapi = "~=0.116.1"
+uvicorn = "~=0.35.0"
+pydantic = "~=2.11.7"
+python-dotenv = "~=1.1.1"
+beautifulsoup4 = "~=4.13.4"
+
+# --- Anthropic ---
+anthropic = "^0.27.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+httpx = "~=0.23.0"
+ruff = "*"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.poetry.scripts]
+# optional: convenience runner
+app = "rag_app.main:main"
