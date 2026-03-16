@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
@@ -23,7 +25,7 @@ def get_conversations(user_id: str, db: Session = Depends(get_db)):
 
 
 @app.get("/conversations/{conversation_id}/messages")
-def get_messages(conversation_id: str, limit: int = 50, db: Session = Depends(get_db)):
+def get_messages(conversation_id: uuid.UUID, limit: int = 50, db: Session = Depends(get_db)):
     return DatabaseManager(db).get_conversation_history(conversation_id, limit)
 
 
