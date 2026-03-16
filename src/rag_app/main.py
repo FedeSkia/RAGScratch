@@ -12,6 +12,8 @@ client = Anthropic()
 class InputData(BaseModel):
     role: str
     content: str
+    user_id: str
+    conversation_id: str
 
 @app.post("/query")
 def read_root(data: InputData) -> types.Message:

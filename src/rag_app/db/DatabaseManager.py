@@ -47,24 +47,24 @@ class DatabaseManager:
         finally:
             self._pool.putconn(conn)
 
-    def create_conversation(self, user_id: str, title: str = None) -> int:
+    def create_conversation(self, user_id: str, thread_id: str = None) -> int:
         with self._get_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO conversations (user_id, title) VALUES (%s, %s) RETURNING id",
-                (user_id, title)
+                "INSERT INTO conversations (user_id, thread_id) VALUES (%s, %s) RETURNING id",
+                (user_id, thread_id)
             )
             conversation_id = cur.fetchone()[0]
             conn.commit()
             cur.close()
             return conversation_id
 
-    def save_message(self, conversation_id: int, role: str, content: str, embedding: List[float] = None) -> int:
+    def save_message(self, thread_id: int, role: str, content: str) -> int:
         with self._get_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO messages (conversation_id, role, content, embedding) VALUES (%s, %s, %s, %s) RETURNING id",
-                (conversation_id, role, content, embedding)
+                "INSERT INTO messages (thread_id, role, content) VALUES (%s, %s, %s, %s) RETURNING id",
+                (thread_id, role, content)
             )
             message_id = cur.fetchone()[0]
             conn.commit()
@@ -75,7 +75,7 @@ class DatabaseManager:
         with self._get_connection() as conn:
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
-                "SELECT id, role, content, created_at FROM messages WHERE conversation_id = %s ORDER BY created_at LIMIT %s",
+                "SELECT id, role, content, thread_id, created_at FROM messages WHERE conversation_id = %s ORDER BY created_at LIMIT %s",
                 (conversation_id, limit)
             )
             return cur.fetchall()
@@ -84,7 +84,7 @@ class DatabaseManager:
         with self._get_connection() as conn:
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
-                "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = %s ORDER BY updated_at DESC",
+                "SELECT id, title, thread_id, created_at, updated_at FROM conversations WHERE user_id = %s ORDER BY updated_at DESC",
                 (user_id,)
             )
             return cur.fetchall()
