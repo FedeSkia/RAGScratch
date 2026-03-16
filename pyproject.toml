@@ -27,6 +27,7 @@ anthropic = "^0.27.0"
 
 # --- Postgres ---
 pgvector = "0.2.4"
+sqlalchemy = "^2.0.48"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

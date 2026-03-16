@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS conversations (
 
 CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
-    thread_id UUID NOT NULL UNIQUE REFERENCES conversations(thread_id) ON DELETE CASCADE,
+    thread_id UUID NOT NULL REFERENCES conversations(thread_id) ON DELETE CASCADE,
     role VARCHAR(20) NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

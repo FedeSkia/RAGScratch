@@ -1,15 +1,16 @@
-from anthropic import Anthropic
+from anthropic import Anthropic, APIError
 import traceback
-import uuid
+from sqlalchemy.orm import Session
 from rag_app.db.DatabaseManager import DatabaseManager
 from rag_app.models import InputData
 
 client = Anthropic()
 
+
 class ChatService:
 
-    def __init__(self):
-        self.database_manager = DatabaseManager()
+    def __init__(self, db: Session):
+        self.database_manager = DatabaseManager(db)
 
     def add_new_conversation(self, user_input: InputData):
         try:
@@ -21,13 +22,11 @@ class ChatService:
                 ]
             )
             response_text = message.content[0].text
-            conversation_id = self.database_manager.create_conversation(user_id=user_input.user_id, thread_id=uuid.uuid4())
-            self.database_manager.save_message(conversation_id, user_input.role, user_input.content)
-            self.database_manager.save_message(conversation_id, message.role, response_text)
+            conversation = self.database_manager.create_conversation(user_input.user_id)
+            self.database_manager.save_message(conversation.thread_id, "user", user_input.content)
+            self.database_manager.save_message(conversation.thread_id, message.role, response_text)
 
             return response_text
-        except Exception:
-            print("Failed to add new conversation", traceback.format_exc())
+        except APIError as e:
+            print(f"Anthropic API error: {e}", traceback.format_exc())
             raise
-
-
