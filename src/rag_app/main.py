@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import os
 
 app = FastAPI()
-load_dotenv()
 client = Anthropic()
 
 class InputData(BaseModel):
