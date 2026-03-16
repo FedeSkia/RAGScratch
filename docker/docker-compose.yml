@@ -28,7 +28,7 @@ services:
     networks:
       - my_app_network
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "rag_app" ]
+      test: [ "CMD", "pg_isready", "-U", "rag_app", "-d", "conversations_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
