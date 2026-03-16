@@ -1,7 +1,8 @@
+from uuid import UUID
 from pydantic import BaseModel
 
 
 class InputData(BaseModel):
-    content: str
+    query: str
     user_id: str
-    conversation_id: str | None = None
+    thread_id: UUID | None = None

@@ -13,10 +13,10 @@ app = FastAPI()
 
 @app.post("/query")
 def read_root(data: InputData, db: Session = Depends(get_db)):
-    if data.conversation_id is None:
-        chat_service = ChatService(db)
+    chat_service = ChatService(db)
+    if data.thread_id is None:
         return chat_service.add_new_conversation(data)
-    return []
+    return chat_service.send_message_with_history(user_input=data)
 
 
 @app.get("/conversations/{user_id}")
