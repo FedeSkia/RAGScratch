@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
     embedding_dims: int = int(os.getenv("EMBEDDING_DIMS", "1536"))
 
+    # Summary
+    summary_min_messages: int = int(os.getenv("SUMMARY_MIN_MESSAGES", "10"))
+
     @property
     def database_url(self) -> str:
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
