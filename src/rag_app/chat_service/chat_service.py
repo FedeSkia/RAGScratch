@@ -7,7 +7,7 @@ from anthropic import Anthropic, APIError
 from anthropic.types import MessageParam
 from sqlalchemy.orm import Session
 
-from rag_app.db.DatabaseManager import DatabaseManager
+from rag_app.db.database_manager import DatabaseManager
 from rag_app.db.orm_models import Message
 from rag_app.models import InputData
 

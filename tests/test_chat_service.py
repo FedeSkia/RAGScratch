@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 
-from rag_app.chat_service.ChatService import ChatService
-from rag_app.db.DatabaseManager import DatabaseManager
+from rag_app.chat_service.chat_service import ChatService
+from rag_app.db.database_manager import DatabaseManager
 from rag_app.models import InputData
 
 

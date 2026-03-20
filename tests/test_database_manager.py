@@ -1,5 +1,5 @@
 import uuid
-from rag_app.db.DatabaseManager import DatabaseManager
+from rag_app.db.database_manager import DatabaseManager
 
 
 class TestDatabaseManager:
