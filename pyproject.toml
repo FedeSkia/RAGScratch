@@ -24,6 +24,9 @@ beautifulsoup4 = "~=4.13.4"
 # --- Anthropic ---
 anthropic = "^0.27.0"
 
+# --- Langchain Helper ---
+langchain-text-splitters = "^1.1.1"
+
 
 # --- Postgres ---
 pgvector = "0.2.4"

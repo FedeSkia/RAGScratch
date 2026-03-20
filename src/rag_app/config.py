@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
     embedding_dims: int = int(os.getenv("EMBEDDING_DIMS", "1536"))
 
+    embedding_chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", "1200"))
+    embedding_chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", "300"))
     # Summary
     summary_min_messages: int = int(os.getenv("SUMMARY_MIN_MESSAGES", "10"))
 
