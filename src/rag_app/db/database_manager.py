@@ -1,9 +1,10 @@
+import uuid
+from typing import List
+
 from sqlalchemy import update, func
 from sqlalchemy.orm import Session
-from rag_app.db.orm_models import Conversation, Message, Document
-from typing import List
-import uuid
 
+from rag_app.db.orm_models import Conversation, Message, Document
 from rag_app.ingestion.model.models import EmbeddedDocument
 
 
@@ -55,6 +56,9 @@ class DatabaseManager:
                 .first())
 
     def save_embedded_document(self, docs: list[EmbeddedDocument]) -> None:
+        sources = {doc.metadata["source"] for doc in docs}
+        for source in sources:
+            self.db.query(Document).filter(Document.doc_metadata["source"].astext == source).delete(synchronize_session=False)
         orm_docs = [
             Document(
                 content=doc.content,
