@@ -1,8 +1,10 @@
 from sqlalchemy import update, func
 from sqlalchemy.orm import Session
-from rag_app.db.orm_models import Conversation, Message
+from rag_app.db.orm_models import Conversation, Message, Document
 from typing import List
 import uuid
+
+from rag_app.ingestion.model.models import EmbeddedDocument
 
 
 class DatabaseManager:
@@ -51,3 +53,15 @@ class DatabaseManager:
         return (self.db.query(Conversation)
                 .filter(Conversation.thread_id == thread_id)
                 .first())
+
+    def save_embedded_document(self, docs: list[EmbeddedDocument]) -> None:
+        orm_docs = [
+            Document(
+                content=doc.content,
+                doc_metadata=doc.metadata,
+                embedding=doc.embedding,
+            )
+            for doc in docs
+        ]
+        self.db.add_all(orm_docs)
+        self.db.commit()

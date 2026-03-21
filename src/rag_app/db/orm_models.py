@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 from rag_app.db.database import Base
 import uuid
 
@@ -30,3 +31,13 @@ class Message(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     conversation = relationship("Conversation", back_populates="messages")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True)
+    content = Column(Text, nullable=False)
+    doc_metadata = Column(JSONB, nullable=False, default={})
+    embedding = Column(Vector(1536))
+    created_at = Column(DateTime, server_default=func.now())

@@ -3,7 +3,7 @@ from pathlib import Path
 from langchain_text_splitters import MarkdownTextSplitter
 
 from rag_app.config import settings
-from rag_app.ingestion.base import DocumentLoader
+from rag_app.ingestion.ingestors.base import DocumentLoader
 from rag_app.ingestion.model.models import Document
 
 

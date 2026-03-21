@@ -18,4 +18,4 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS messages_conversation_time_idx
-    ON messages(conversation_id, created_at);
+    ON messages(thread_id, created_at);

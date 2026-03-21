@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, mock_open
 
-from rag_app.ingestion.md_ingestor import MDIngestor
+from rag_app.ingestion.ingestors.md_ingestor import MDIngestor
 
 
 SAMPLE_MD = """# Title

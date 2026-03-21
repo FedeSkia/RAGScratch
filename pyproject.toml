@@ -31,6 +31,7 @@ langchain-text-splitters = "^1.1.1"
 # --- Postgres ---
 pgvector = "0.2.4"
 sqlalchemy = "^2.0.48"
+openai = "^2.29.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

@@ -21,8 +21,11 @@ class Settings(BaseSettings):
 
     embedding_chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", "1200"))
     embedding_chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", "300"))
+    open_ai_api_key: str = str(os.getenv("OPEN_AI_API_KEY"))
     # Summary
     summary_min_messages: int = int(os.getenv("SUMMARY_MIN_MESSAGES", "10"))
+
+    path_to_files_to_be_ingested: str = str(os.getenv("PATH_TO_FILES", "/Users/federicoconoci/PycharmProjects/fastApiDocs"))
 
     @property
     def database_url(self) -> str:
