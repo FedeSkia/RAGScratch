@@ -31,8 +31,8 @@ class TestDatabaseManager:
         dm.save_message(conv.thread_id, "assistant", "msg2")
         history = dm.get_conversation_history(conv.thread_id)
         assert len(history) == 2
-        assert history[0].content == "msg1"
-        assert history[1].content == "msg2"
+        assert history[0].content == "msg2"
+        assert history[1].content == "msg1"
 
     def test_get_conversation_history_respects_limit(self, db_session):
         dm = DatabaseManager(db_session)

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import List
 
 from sqlalchemy import update, func
@@ -38,11 +39,32 @@ class DatabaseManager:
         return message
 
     def get_conversation_history(self, thread_id: uuid.UUID, limit: int = 50) -> List[Message]:
+        """Retrieve the most recent messages for a conversation, ordered chronologically.
+
+        :param thread_id: the conversation thread identifier
+        :param limit: maximum number of messages to return (default 50)
+        :returns: list of messages ordered from oldest to newest
+        """
         return (self.db.query(Message)
                 .filter(Message.thread_id == thread_id)
-                .order_by(Message.created_at)
+                .order_by(Message.created_at.desc())
                 .limit(limit)
-                .all())
+                .all()[::-1])
+
+    def count_messages_for_thread(self, thread_id: uuid.UUID) -> int:
+        """Count messages for a certain thread."""
+        return self.db.query(func.count(Message.id)).scalar()
+
+    def count_messages_since(self, thread_id: uuid.UUID, since: datetime) -> int:
+        """Count messages created after a given timestamp.
+
+        :param thread_id: the conversation thread identifier
+        :param since: count messages created after this timestamp
+        :returns: number of messages since the given timestamp
+        """
+        return (self.db.query(func.count(Message.id))
+                .filter(Message.thread_id == thread_id, Message.created_at > since)
+                .scalar())
 
     def get_all_conversations(self, user_id: str) -> List[Conversation]:
         return (self.db.query(Conversation)

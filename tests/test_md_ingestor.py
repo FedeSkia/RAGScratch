@@ -20,7 +20,7 @@ Content of section two.
 
 class TestMDIngestor(unittest.TestCase):
 
-    @patch("rag_app.ingestion.md_ingestor.settings")
+    @patch("rag_app.ingestion.ingestors.md_ingestor.settings")
     def setUp(self, mock_settings):
         mock_settings.embedding_chunk_size = 100
         mock_settings.embedding_chunk_overlap = 20
