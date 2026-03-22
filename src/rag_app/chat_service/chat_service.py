@@ -1,7 +1,6 @@
 import traceback
 import uuid
-from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List
 
 from anthropic import Anthropic, APIError
 from anthropic.types import MessageParam, ToolUseBlock, TextBlock, ToolParam
@@ -128,7 +127,8 @@ class ChatService:
         :returns: tuple of (system_prompt_or_none, formatted_messages)
         """
         conversation = self.database_manager.get_conversation(thread_id=thread_id)
-        past_messages: List[Message] = self.database_manager.get_conversation_history(thread_id, settings.summary_min_messages)
+        past_messages: List[Message] = self.database_manager.get_conversation_history(thread_id,
+                                                                                      settings.summary_min_messages)
         if conversation and conversation.summary:
             recent = [
                 MessageParam(role=msg.role, content=msg.content)
@@ -141,14 +141,16 @@ class ChatService:
             for msg in past_messages
         ]
 
-    def _retrieve_past_chat_for_conversation_summary(self, thread_id: uuid.UUID) -> tuple[str | None, list[Message]]:
+    def _retrieve_past_chat_for_conversation_summary(self, thread_id: uuid.UUID) -> tuple[
+        str | None, list[MessageParam]]:
         """ retrieve the conversation summary (if present) and the last messages that have not been summarized"""
         conversation = self.database_manager.get_conversation(thread_id=thread_id)
-        past_messages: List[Message] = self.database_manager.get_conversation_history(thread_id, settings.summary_min_messages)
+        past_messages: List[Message] = self.database_manager.get_conversation_history(thread_id,
+                                                                                      settings.summary_min_messages)
+        past_messages_claude = [MessageParam(content=orm_msg.content, role=orm_msg.role) for orm_msg in past_messages]
         if conversation and conversation.summary:
-            return conversation.summary, past_messages
-        return None, past_messages
-
+            return conversation.summary, past_messages_claude
+        return None, past_messages_claude
 
     def _generate_conversation_summary(self, thread_id: uuid.UUID) -> None:
         """Generate a summary of the conversation by asking Claude to summarize
@@ -161,7 +163,7 @@ class ChatService:
         past_messages.append(MessageParam(content="Create a summary of the conversation.", role="user"))
         summary_response = client.messages.create(
             model="claude-haiku-4-5",
-            system="You are an assistant specialized in resuming conversation. Your task is to add to the ",
+            system="You are an assistant specialized in resuming conversation. Your task is to add the last message to the summary",
             max_tokens=1024,
             messages=past_messages
         )
@@ -180,9 +182,10 @@ class ChatService:
         if conversation is None:
             return False
 
-        #If no conversation and more messages than "summary_min_messages" are present then generate it
+        # If no conversation and more messages than "summary_min_messages" are present then generate it
         if conversation.summary_generated_at is None:
             return self.database_manager.count_messages_for_thread(thread_id) >= settings.summary_min_messages
 
-        messages_with_no_summary_count = self.database_manager.count_messages_since(thread_id, conversation.summary_generated_at)
+        messages_with_no_summary_count = self.database_manager.count_messages_since(thread_id,
+                                                                                    conversation.summary_generated_at)
         return messages_with_no_summary_count >= settings.summary_min_messages
