@@ -6,3 +6,6 @@ class Document(BaseModel):
 
 class EmbeddedDocument(Document):
     embedding: list[float]
+
+class RetrievedDocument(Document):
+    score: float

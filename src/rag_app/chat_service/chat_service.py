@@ -1,40 +1,58 @@
 import traceback
 import uuid
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, TypedDict
 
 from anthropic import Anthropic, APIError
-from anthropic.types import MessageParam
+from anthropic.types import MessageParam, ToolUseBlock, TextBlock, ToolParam
 from sqlalchemy.orm import Session
 
 from rag_app.db.database_manager import DatabaseManager
 from rag_app.db.orm_models import Message
 from rag_app.models import InputData
+from rag_app.retrieval.base import Retriever
 
 from rag_app.config import settings
 
 client = Anthropic()
 
+SEARCH_TOOL = ToolParam(
+    name="search_documents",
+    description="Search the knowledge base for relevant documents. "
+                "Use this when the user asks a question that may require specific information from ingested files."
+                "This tool is using cosine similarity on a PostgresDB to look for relevant information."
+                "You can choose how many records to fetch."
+                "You can add references to text and you decide if you want to perform a resume",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "The search query to find relevant documents",
+            },
+            "k": {
+                "type": "integer",
+                "description": "How many records to be fetched"
+            }
+        },
+        "required": ["query", "k"],
+    },
+)
+
 
 class ChatService:
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, retriever: Retriever):
         self.database_manager = DatabaseManager(db)
+        self.retriever = retriever
 
     def add_new_conversation(self, user_input: InputData):
         try:
-            response = client.messages.create(
-                model="claude-haiku-4-5",
-                max_tokens=1024,
-                messages=[
-                    MessageParam(role="user", content=user_input.query)
-                ]
-            )
-            response_text = response.content[0].text
+            messages = [MessageParam(role="user", content=user_input.query)]
+            response_text = self._call_with_tools(messages)
             conversation = self.database_manager.create_conversation(user_input.user_id)
             self.database_manager.save_message(conversation.thread_id, "user", user_input.query)
-            self.database_manager.save_message(conversation.thread_id, response.role, response_text)
-
+            self.database_manager.save_message(conversation.thread_id, "assistant", response_text)
             return response_text
         except APIError as e:
             print(f"Anthropic API error: {e}", traceback.format_exc())
@@ -44,24 +62,44 @@ class ChatService:
         thread_id = user_input.thread_id
         if user_input.thread_id is None:
             raise Exception("Conversation ID is required")
-        formatted_messages = self._retrieve_and_format_past_chat(thread_id)
-        formatted_messages.append({
-            "role": "user",
-            "content": user_input.query
-        })
-        response = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=1024,
-            messages=formatted_messages
-        )
+        messages = self._retrieve_and_format_past_chat(thread_id)
+        messages.append({"role": "user", "content": user_input.query})
+        response_text = self._call_with_tools(messages)
         self.database_manager.save_message(thread_id, "user", user_input.query)
-        response_text = response.content[0].text
-        self.database_manager.save_message(thread_id, response.role, response_text)
+        self.database_manager.save_message(thread_id, "assistant", response_text)
 
         if self._should_regenerate_summary(thread_id):
             self._generate_conversation_summary(thread_id)
 
         return response_text
+
+    def _call_with_tools(self, messages: list) -> str:
+        response = client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=1024,
+            tools=[SEARCH_TOOL],
+            messages=messages,
+        )
+        i = 0
+        while response.stop_reason == "tool_use" and i <= 4:
+            tool_block = next(b for b in response.content if isinstance(b, ToolUseBlock) and b.name == SEARCH_TOOL.get("name"))
+            results = self.retriever.retrieve(tool_block.input["query"], tool_block.input["k"])
+            tool_result_content = "\n\n".join(
+                f"[Source: {doc.metadata.get('source', 'unknown')} | Score: {doc.score:.2f}]\n{doc.content}"
+                for doc in results
+            )
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": tool_block.id, "content": tool_result_content},
+            ]})
+            response = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=1024,
+                tools=[SEARCH_TOOL],
+                messages=messages,
+            )
+            i += 1
+        return next(b.text for b in response.content if isinstance(b, TextBlock))
 
     def _retrieve_and_format_past_chat(self, thread_id: uuid.UUID) -> list[MessageParam]:
         past_messages: List[Message] = self.database_manager.get_conversation_history(thread_id, 50)

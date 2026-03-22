@@ -11,13 +11,19 @@ from rag_app.ingestion.embedder.base import Embedder
 from rag_app.ingestion.embedder.embedders import get_embedder
 from rag_app.ingestion.ingestor import ingest_directory
 from rag_app.models import InputData
+from rag_app.retrieval.base import Retriever
+from rag_app.retrieval.retrieval import PgVectorRetriever
 
 app = FastAPI()
 
 
+def get_retriever(db: Session = Depends(get_db), embedder: Embedder = Depends(get_embedder)) -> Retriever:
+    return PgVectorRetriever(embedder, db)
+
+
 @app.post("/query")
-def read_root(data: InputData, db: Session = Depends(get_db)):
-    chat_service = ChatService(db)
+def read_root(data: InputData, db: Session = Depends(get_db), retriever: Retriever = Depends(get_retriever)):
+    chat_service = ChatService(db, retriever)
     if data.thread_id is None:
         return chat_service.add_new_conversation(data)
     return chat_service.send_message_with_history(user_input=data)
