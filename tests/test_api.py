@@ -2,11 +2,18 @@ import uuid
 from unittest.mock import patch, MagicMock
 
 from fastapi.testclient import TestClient
-from rag_app.main import app
+from rag_app.main import app, get_anthropic_client
 
 
 def _mock_db():
     return MagicMock()
+
+
+def _mock_client():
+    return MagicMock()
+
+
+app.dependency_overrides[get_anthropic_client] = _mock_client
 
 
 @patch("rag_app.main.get_db", _mock_db)

@@ -14,9 +14,10 @@ class TestChatServiceWithTools(unittest.TestCase):
     def setUp(self):
         self.mock_db = MagicMock()
         self.mock_retriever = MagicMock()
+        self.mock_client = MagicMock()
         with patch("rag_app.chat_service.chat_service.DatabaseManager") as mock_dm_cls:
             self.mock_dm = mock_dm_cls.return_value
-            self.service = ChatService(self.mock_db, self.mock_retriever)
+            self.service = ChatService(self.mock_db, self.mock_retriever, self.mock_client)
 
     def _text_response(self, text="response"):
         response = MagicMock()
@@ -31,18 +32,16 @@ class TestChatServiceWithTools(unittest.TestCase):
         response.content = [tool_block]
         return response
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_no_tool_use(self, mock_client):
-        mock_client.messages.create.return_value = self._text_response("direct answer")
+    def test_no_tool_use(self):
+        self.mock_client.messages.create.return_value = self._text_response("direct answer")
 
         result = self.service._call_with_tools([{"role": "user", "content": "hello"}])
 
         self.assertEqual(result, "direct answer")
         self.mock_retriever.retrieve.assert_not_called()
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_single_tool_use(self, mock_client):
-        mock_client.messages.create.side_effect = [
+    def test_single_tool_use(self):
+        self.mock_client.messages.create.side_effect = [
             self._tool_use_response("python basics", 5),
             self._text_response("here is the answer"),
         ]
@@ -55,23 +54,19 @@ class TestChatServiceWithTools(unittest.TestCase):
         self.assertEqual(result, "here is the answer")
         self.mock_retriever.retrieve.assert_called_once_with("python basics", 5)
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_tool_use_loop_limited_to_max_iterations(self, mock_client):
-        # Always return tool_use to test the limiter
-        mock_client.messages.create.return_value = self._tool_use_response()
+    def test_tool_use_loop_limited_to_max_iterations(self):
+        self.mock_client.messages.create.return_value = self._tool_use_response()
         self.mock_retriever.retrieve.return_value = [
             RetrievedDocument(content="text", metadata={}, score=0.5),
         ]
 
-        # After 5 iterations (0..4), loop exits and tries to get TextBlock — which won't exist
         with self.assertRaises(StopIteration):
             self.service._call_with_tools([{"role": "user", "content": "query"}])
 
         self.assertEqual(self.mock_retriever.retrieve.call_count, 5)
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_add_new_conversation_saves_messages(self, mock_client):
-        mock_client.messages.create.return_value = self._text_response("hi")
+    def test_add_new_conversation_saves_messages(self):
+        self.mock_client.messages.create.return_value = self._text_response("hi")
         data = InputData(query="hello", user_id="user-1")
 
         self.service.add_new_conversation(data)
@@ -79,16 +74,14 @@ class TestChatServiceWithTools(unittest.TestCase):
         self.mock_dm.create_conversation.assert_called_once_with("user-1")
         self.assertEqual(self.mock_dm.save_message.call_count, 2)
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_send_message_with_history_requires_thread_id(self, mock_client):
+    def test_send_message_with_history_requires_thread_id(self):
         data = InputData(query="hello", user_id="user-1", thread_id=None)
 
-        with self.assertRaises(Exception, msg="Conversation ID is required"):
+        with self.assertRaises(Exception, msg="Thread ID is required"):
             self.service.send_message_with_history(data)
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_send_message_with_history_saves_messages(self, mock_client):
-        mock_client.messages.create.return_value = self._text_response("reply")
+    def test_send_message_with_history_saves_messages(self):
+        self.mock_client.messages.create.return_value = self._text_response("reply")
         thread_id = uuid.uuid4()
         self.mock_dm.get_conversation_history.return_value = []
         self.mock_dm.get_conversation.return_value = None
@@ -99,9 +92,8 @@ class TestChatServiceWithTools(unittest.TestCase):
         self.assertEqual(result, "reply")
         self.assertEqual(self.mock_dm.save_message.call_count, 2)
 
-    @patch("rag_app.chat_service.chat_service.client")
-    def test_tool_result_content_includes_source_and_score(self, mock_client):
-        mock_client.messages.create.side_effect = [
+    def test_tool_result_content_includes_source_and_score(self):
+        self.mock_client.messages.create.side_effect = [
             self._tool_use_response("query", 2),
             self._text_response("answer"),
         ]
@@ -111,8 +103,7 @@ class TestChatServiceWithTools(unittest.TestCase):
 
         self.service._call_with_tools([{"role": "user", "content": "question"}])
 
-        # Check the tool_result message sent back
-        second_call_messages = mock_client.messages.create.call_args_list[1].kwargs["messages"]
+        second_call_messages = self.mock_client.messages.create.call_args_list[1].kwargs["messages"]
         tool_result_msg = second_call_messages[-1]["content"][0]
         self.assertIn("readme.md", tool_result_msg["content"])
         self.assertIn("0.85", tool_result_msg["content"])

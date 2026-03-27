@@ -12,7 +12,6 @@ from rag_app.db.orm_models import Message
 from rag_app.models import InputData
 from rag_app.retrieval.base import Retriever
 
-client = Anthropic()
 
 SEARCH_TOOL = ToolParam(
     name="search_documents",
@@ -42,9 +41,10 @@ class ChatService:
     """Orchestrates conversations with Claude, integrating tool-based document retrieval
     and conversation history management."""
 
-    def __init__(self, db: Session, retriever: Retriever):
+    def __init__(self, db: Session, retriever: Retriever, client: Anthropic):
         self.database_manager = DatabaseManager(db)
         self.retriever = retriever
+        self.client = client
 
     def add_new_conversation(self, user_input: InputData) -> str:
         """Start a new conversation. Sends the user query to Claude (with tool access),
@@ -100,7 +100,7 @@ class ChatService:
         kwargs = dict(model="claude-haiku-4-5", max_tokens=1024, tools=[SEARCH_TOOL], messages=messages)
         if system:
             kwargs["system"] = system
-        response = client.messages.create(**kwargs)
+        response = self.client.messages.create(**kwargs)
         i = 0
         while response.stop_reason == "tool_use" and i <= 4:
             tool_block = next(
@@ -114,7 +114,7 @@ class ChatService:
             messages.append({"role": "user", "content": [
                 {"type": "tool_result", "tool_use_id": tool_block.id, "content": tool_result_content},
             ]})
-            response = client.messages.create(**kwargs)
+            response = self.client.messages.create(**kwargs)
             i += 1
         return next(b.text for b in response.content if isinstance(b, TextBlock))
 
@@ -161,7 +161,7 @@ class ChatService:
         summary, past_messages = self._retrieve_past_chat_for_conversation_summary(thread_id)
         f"Summary of previous conversation: {summary}"
         past_messages.append(MessageParam(content="Create a summary of the conversation.", role="user"))
-        summary_response = client.messages.create(
+        summary_response = self.client.messages.create(
             model="claude-haiku-4-5",
             system="You are an assistant specialized in resuming conversation. Your task is to add the last message to the summary",
             max_tokens=1024,

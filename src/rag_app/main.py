@@ -1,5 +1,6 @@
 import uuid
 
+from anthropic import Anthropic
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
@@ -21,9 +22,13 @@ def get_retriever(db: Session = Depends(get_db), embedder: Embedder = Depends(ge
     return PgVectorRetriever(embedder, db)
 
 
+def get_anthropic_client() -> Anthropic:
+    return Anthropic()
+
+
 @app.post("/query")
-def read_root(data: InputData, db: Session = Depends(get_db), retriever: Retriever = Depends(get_retriever)):
-    chat_service = ChatService(db, retriever)
+def read_root(data: InputData, db: Session = Depends(get_db), retriever: Retriever = Depends(get_retriever), client: Anthropic = Depends(get_anthropic_client)):
+    chat_service = ChatService(db, retriever, client)
     if data.thread_id is None:
         return chat_service.add_new_conversation(data)
     return chat_service.send_message_with_history(user_input=data)
