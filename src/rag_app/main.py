@@ -1,6 +1,7 @@
 import uuid
 
 from anthropic import Anthropic
+from chainlit.utils import mount_chainlit
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
@@ -30,7 +31,8 @@ def get_anthropic_client() -> Anthropic:
 def read_root(data: InputData, db: Session = Depends(get_db), retriever: Retriever = Depends(get_retriever), client: Anthropic = Depends(get_anthropic_client)):
     chat_service = ChatService(db, retriever, client)
     if data.thread_id is None:
-        return chat_service.add_new_conversation(data)
+        text, thread_id = chat_service.add_new_conversation(data)
+        return text
     return chat_service.send_message_with_history(user_input=data)
 
 
@@ -53,6 +55,7 @@ def start_ingesting(db: Session = Depends(get_db), embedder: Embedder = Depends(
 
 def main():
     import uvicorn
+    mount_chainlit(app=app, target="cl_app.py", path="/chat")
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 

@@ -1,6 +1,6 @@
 import traceback
 import uuid
-from typing import List
+from typing import List, Tuple
 
 from anthropic import Anthropic, APIError
 from anthropic.types import MessageParam, ToolUseBlock, TextBlock, ToolParam
@@ -46,12 +46,12 @@ class ChatService:
         self.retriever = retriever
         self.client = client
 
-    def add_new_conversation(self, user_input: InputData) -> str:
+    def add_new_conversation(self, user_input: InputData) -> Tuple[str, str]:
         """Start a new conversation. Sends the user query to Claude (with tool access),
         persists both user and assistant messages, and returns the response text.
 
         :param user_input: contains the query and user_id
-        :returns: Claude's response text
+        :returns: Claude's response text and thread_id
         :raises APIError: if the Anthropic API call fails
         """
         try:
@@ -60,7 +60,7 @@ class ChatService:
             conversation = self.database_manager.create_conversation(user_input.user_id)
             self.database_manager.save_message(conversation.thread_id, "user", user_input.query)
             self.database_manager.save_message(conversation.thread_id, "assistant", response_text)
-            return response_text
+            return response_text, conversation.thread_id
         except APIError as e:
             print(f"Anthropic API error: {e}", traceback.format_exc())
             raise
